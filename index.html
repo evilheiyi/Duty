@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#4a6fa5">
-<title>未來 7 天更期</title>
+<title>未來更期</title>
 
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
@@ -35,7 +35,7 @@
     /* ===== 頁首 ===== */
     .header {
         text-align: center;
-        margin-bottom: 20px;
+        margin-bottom: 16px;
         padding-top: 4px;
     }
     .header h1 {
@@ -61,6 +61,38 @@
         margin: 10px auto 0;
     }
 
+    /* ===== 檢視切換按鈕 ===== */
+    .view-toggle {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin: 16px auto 18px;
+        max-width: 900px;
+    }
+    .toggle-btn {
+        flex: 0 1 auto;
+        padding: 10px 28px;
+        border: 1px solid #d6e3f0;
+        border-radius: 12px;
+        background: #eaf1f9;
+        color: #4a6fa5;
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: 1.5px;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.1s;
+        font-family: inherit;
+        box-shadow: 0 2px 6px rgba(30, 60, 100, 0.07);
+        white-space: nowrap;
+    }
+    .toggle-btn.active {
+        background: linear-gradient(135deg, #4a6fa5 0%, #2a4a7c 100%);
+        color: #ffffff;
+        border-color: transparent;
+        box-shadow: 0 4px 12px rgba(42, 74, 124, 0.28);
+    }
+    .toggle-btn:active { transform: scale(0.96); }
+
     /* ===== 並排 Grid 主容器 ===== */
     .week-grid {
         display: grid;
@@ -72,6 +104,9 @@
 
     /* 員工名稱表頭 */
     .col-header {
+        position: sticky;
+        top: 0;
+        z-index: 5;
         background: linear-gradient(135deg, #4a6fa5 0%, #2a4a7c 100%);
         color: #ffffff;
         padding: 16px 8px;
@@ -318,6 +353,42 @@
         padding: 6px 0;
     }
 
+    /* ===== 30 天精簡模式 ===== */
+    .week-grid.compact { gap: 7px; }
+    .week-grid.compact .col-header {
+        font-size: 18px;
+        padding: 11px 6px;
+        letter-spacing: 3px;
+    }
+    .week-grid.compact .col-header .icon { font-size: 16px; }
+    .week-grid.compact .day-cell {
+        padding: 9px 10px;
+        min-height: 106px;
+        border-radius: 12px;
+    }
+    .week-grid.compact .day-date {
+        font-size: 14px;
+        gap: 4px;
+        margin-bottom: 7px;
+    }
+    .week-grid.compact .today-badge,
+    .week-grid.compact .tomorrow-badge,
+    .week-grid.compact .dayafter-badge {
+        font-size: 11px;
+        padding: 2px 7px;
+        letter-spacing: 1px;
+    }
+    .week-grid.compact .time-line .label { font-size: 10px; min-width: 24px; }
+    .week-grid.compact .time-line .value { font-size: clamp(19px, 5.6vw, 26px); }
+    .week-grid.compact .time-line.end .value { font-size: clamp(14px, 4.2vw, 20px); }
+    .week-grid.compact .shift-badge { font-size: 10px; padding: 2px 8px; margin-top: 6px; }
+    .week-grid.compact .rest-info .icon { font-size: 20px; }
+    .week-grid.compact .rest-info .text { font-size: clamp(16px, 4.4vw, 20px); letter-spacing: 1px; }
+    .week-grid.compact .class-info .icon { font-size: 22px; }
+    .week-grid.compact .class-info .text { font-size: clamp(20px, 5.6vw, 26px); letter-spacing: 2px; }
+    .week-grid.compact .no-time-info .code { font-size: clamp(22px, 6vw, 28px); }
+    .week-grid.compact .unknown-info .text { font-size: 13px; }
+
     /* ===== 載入 / 錯誤 ===== */
     .loading, .error {
         text-align: center;
@@ -369,6 +440,14 @@
         .time-line.end .value { font-size: clamp(24px, 3vw, 30px); }
         .time-line .label { font-size: 12.5px; min-width: 32px; }
         .class-info .text { font-size: 38px; }
+
+        .week-grid.compact .col-header { font-size: 22px; padding: 14px 10px; }
+        .week-grid.compact .day-cell { padding: 12px 14px; min-height: 118px; }
+        .week-grid.compact .day-date { font-size: 16px; }
+        .week-grid.compact .time-line .value { font-size: clamp(26px, 3vw, 34px); }
+        .week-grid.compact .time-line.end .value { font-size: clamp(19px, 2.2vw, 24px); }
+        .week-grid.compact .rest-info .text { font-size: 24px; }
+        .week-grid.compact .class-info .text { font-size: 30px; }
     }
 
     /* ===== 深色模式 ===== */
@@ -379,6 +458,18 @@
         }
         .header h1 { color: #dbeafe; text-shadow: none; }
         .header .date { color: #93b4d4; }
+        .toggle-btn {
+            background: #22344d;
+            color: #9fb3c8;
+            border-color: #2f4a68;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+        .toggle-btn.active {
+            background: linear-gradient(135deg, #2c4a72 0%, #1a3155 100%);
+            color: #dbeafe;
+            border-color: transparent;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+        }
         .col-header {
             background: linear-gradient(135deg, #2c4a72 0%, #1a3155 100%);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
@@ -426,9 +517,14 @@
 <body>
 
 <div class="header">
-    <h1>未來 7 天更期</h1>
+    <h1>未來更期</h1>
     <div class="date" id="todayDate">載入中...</div>
     <span class="date-divider"></span>
+</div>
+
+<div class="view-toggle">
+    <button type="button" class="toggle-btn active" id="btn7">未來 7 天</button>
+    <button type="button" class="toggle-btn" id="btn30">未來 30 天</button>
 </div>
 
 <div id="content">
@@ -463,7 +559,13 @@ const TARGET_NAMES = [
     { keyword: 'Ng Hei Man', display: '汶' }
 ];
 
-const DAYS_TO_SHOW = 7;
+/* ★ 兩種檢視模式的天數 */
+const DAYS_SHORT = 7;
+const DAYS_LONG  = 30;
+let currentDays  = DAYS_SHORT;
+
+/* ★ 自動刷新間隔：12 小時 */
+const REFRESH_INTERVAL_MS = 12 * 60 * 60 * 1000;
 
 /* ============================================================
    班次時間表（24 小時制，顯示時會轉 12 小時制）
@@ -493,13 +595,15 @@ const SHIFT_TIMES = {
     '17A'  : { start: '17:15', end: '01:10', nextDay: true  }
 };
 
-const REST_CODES = ['R', 'RD', 'OFF', 'CRD'];
+/* ★ 休息代碼（全部顯示為「休息」）
+   R / RD / OFF / CRD 為原本休息代碼
+   AL / SH / GH / WB / CL 依需求一律顯示為休息
+*/
+const REST_CODES = ['R', 'RD', 'OFF', 'CRD', 'AL', 'SH', 'GH', 'WB', 'CL'];
+
+/* 其餘假期（保持不變） */
 const LEAVE_CODES = {
-    'AL': { text: '年假',     icon: '🏖️' },
     'SL': { text: '病假',     icon: '💊' },
-    'SH': { text: '公眾假期', icon: '🎉' },
-    'GH': { text: '公眾假期', icon: '🎉' },
-    'WB': { text: '生日假',   icon: '🎂' },
     'LS': { text: '長期病假', icon: '💊' }
 };
 
@@ -670,6 +774,7 @@ function analyzeShift(shiftInfo) {
         return { type: 'unknown', label: '自訂班次', icon: '📌', code: code };
     }
 
+    /* ★ 所有休息／假期代碼 → 休息 */
     if (REST_CODES.includes(upper)) {
         return { type: 'rest', label: '休息', icon: '🌙', code: upper };
     }
@@ -699,12 +804,12 @@ function analyzeShift(shiftInfo) {
 /* ============================================================
    從 Firestore 載入資料
    ============================================================ */
-async function loadRosterData() {
+async function loadRosterData(days) {
     const today = new Date();
     const currentYear = today.getFullYear();
 
     const monthKeys = new Set();
-    for (let i = 0; i < DAYS_TO_SHOW; i++) {
+    for (let i = 0; i < days; i++) {
         const d = new Date(today);
         d.setDate(d.getDate() + i);
         monthKeys.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
@@ -795,7 +900,7 @@ function renderDayCell(staffId, date, shiftChanges, dayOffset) {
 
     let bodyHtml = '';
     if (analysis.type === 'work') {
-        /* ★ 轉 12 小時制 */
+        /* ★ 上下班時間 → 12 小時制 */
         const startT = format12Hour(analysis.start);
         const endT = format12Hour(analysis.end);
         const nextDayMark = analysis.nextDay ? '<span class="next-day">(+1)</span>' : '';
@@ -853,11 +958,12 @@ async function refresh() {
     const content = document.getElementById('content');
     const updatedEl = document.getElementById('updatedAt');
     const today = new Date();
+    const days = currentDays;
 
     document.getElementById('todayDate').textContent = formatChineseDate(today);
 
     try {
-        const { staffNames, shiftChanges } = await loadRosterData();
+        const { staffNames, shiftChanges } = await loadRosterData(days);
         const matched = matchTargetStaff(staffNames);
 
         if (matched.length === 0) {
@@ -872,8 +978,10 @@ async function refresh() {
         }
 
         const totalCols = 2;
+        const compact = days > DAYS_SHORT ? ' compact' : '';
         let gridHtml = '';
 
+        /* 員工名稱表頭（並排兩欄） */
         for (let i = 0; i < totalCols; i++) {
             if (i < matched.length) {
                 gridHtml += `<div class="col-header">
@@ -885,7 +993,8 @@ async function refresh() {
             }
         }
 
-        for (let d = 0; d < DAYS_TO_SHOW; d++) {
+        /* 逐日 × 逐員工 */
+        for (let d = 0; d < days; d++) {
             const date = new Date(today);
             date.setDate(date.getDate() + d);
 
@@ -898,12 +1007,12 @@ async function refresh() {
             }
         }
 
-        content.innerHTML = `<div class="week-grid">${gridHtml}</div>`;
+        content.innerHTML = `<div class="week-grid${compact}">${gridHtml}</div>`;
 
         const timeStr = today.toLocaleTimeString('zh-HK', {
             hour: '2-digit', minute: '2-digit', hour12: false
         });
-        updatedEl.textContent = `最後更新：${timeStr}`;
+        updatedEl.textContent = `顯示未來 ${days} 天 · 最後更新：${timeStr}`;
 
     } catch (err) {
         console.error('讀取更表失敗：', err);
@@ -918,11 +1027,37 @@ async function refresh() {
 }
 
 /* ============================================================
+   檢視切換
+   ============================================================ */
+function setView(days) {
+    if (currentDays === days) return;
+    currentDays = days;
+    document.getElementById('btn7').classList.toggle('active', days === DAYS_SHORT);
+    document.getElementById('btn30').classList.toggle('active', days === DAYS_LONG);
+
+    const content = document.getElementById('content');
+    content.innerHTML = `
+        <div class="loading">
+            <div class="spinner"></div>
+            正在讀取更表資料...
+        </div>
+    `;
+    refresh();
+}
+
+/* ============================================================
    啟動
    ============================================================ */
 document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('btn7').addEventListener('click', () => setView(DAYS_SHORT));
+    document.getElementById('btn30').addEventListener('click', () => setView(DAYS_LONG));
+
     refresh();
-    setInterval(refresh, 5 * 60 * 1000);
+
+    /* ★ 每 12 小時自動刷新一次 */
+    setInterval(refresh, REFRESH_INTERVAL_MS);
+
+    /* 回到前景時刷新（保持資料即時） */
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) refresh();
     });
