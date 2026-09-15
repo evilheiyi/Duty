@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#4a6fa5">
+<title>未來 7 天更期</title>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    html { font-size: 16px; }
+
+    body {
+        font-family: 'Microsoft JhengHei', 'PingFang TC', 'Noto Sans TC', 'Helvetica Neue', Arial, sans-serif;
+        background: linear-gradient(170deg, #dce8f5 0%, #eef4fa 40%, #f7fafd 100%);
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding: 20px 10px 40px;
+        color: #1a2a3a;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== 頁首 ===== */
+    .header {
+        text-align: center;
+        margin-bottom: 20px;
+        padding-top: 4px;
+    }
+    .header h1 {
+        font-size: 26px;
+        font-weight: 800;
+        color: #1e3a5f;
+        letter-spacing: 6px;
+        margin-bottom: 8px;
+        text-shadow: 0 2px 4px rgba(74, 111, 165, 0.10);
+    }
+    .header .date {
+        font-size: 15px;
+        color: #5a6f87;
+        font-weight: 600;
+        letter-spacing: 1.5px;
+    }
+    .header .date-divider {
+        display: block;
+        width: 44px;
+        height: 3px;
+        background: linear-gradient(90deg, #4a6fa5, #7ba3cf);
+        border-radius: 3px;
+        margin: 10px auto 0;
+    }
+
+    /* ===== 並排 Grid 主容器 ===== */
+    .week-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    /* 員工名稱表頭 */
+    .col-header {
+        background: linear-gradient(135deg, #4a6fa5 0%, #2a4a7c 100%);
+        color: #ffffff;
+        padding: 16px 8px;
+        border-radius: 14px;
+        text-align: center;
+        font-weight: 800;
+        font-size: 22px;
+        letter-spacing: 4px;
+        box-shadow: 0 4px 12px rgba(42, 74, 124, 0.22);
+        word-break: break-word;
+        overflow-wrap: break-word;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        line-height: 1.3;
+    }
+    .col-header .icon { font-size: 20px; line-height: 1; }
+    .col-header.empty {
+        background: #e2e8f0;
+        color: #94a3b8;
+        box-shadow: none;
+    }
+
+    /* 每日格子 */
+    .day-cell {
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 12px 14px;
+        box-shadow: 0 2px 8px rgba(30, 60, 100, 0.06);
+        border-left: 4px solid #cbd5e1;
+        min-height: 130px;
+        min-width: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .day-cell.today {
+        background: linear-gradient(135deg, #ffffff 0%, #f0f8ff 100%);
+        border-left-color: #3a7bd5;
+        box-shadow: 0 4px 16px rgba(58, 123, 213, 0.18);
+    }
+    .day-cell.is-rest { border-left-color: #94a3b8; }
+    .day-cell.is-leave { border-left-color: #f59e0b; }
+    .day-cell.is-class { border-left-color: #7c3aed; }
+
+    .day-cell.empty {
+        background: #f5f5f5;
+        opacity: 0.45;
+        box-shadow: none;
+        border-left-color: #e2e8f0;
+    }
+
+    /* ===== ★ 日期標題（加大） ===== */
+    .day-date {
+        font-size: 17px;          /* ★ 從 12.5px 加大至 17px */
+        font-weight: 800;          /* ★ 加粗 */
+        color: #334155;            /* ★ 加深顏色 */
+        letter-spacing: 0.5px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        line-height: 1.35;
+    }
+
+    /* ★ 今日 / 明日 / 後日 徽章加大 */
+    .today-badge {
+        background: #3a7bd5;
+        color: #ffffff;
+        font-size: 13px;
+        font-weight: 800;
+        padding: 3px 10px;
+        border-radius: 10px;
+        letter-spacing: 2px;
+    }
+    .tomorrow-badge {
+        background: #f59e0b;
+        color: #ffffff;
+        font-size: 13px;
+        font-weight: 800;
+        padding: 3px 10px;
+        border-radius: 10px;
+        letter-spacing: 2px;
+    }
+    .dayafter-badge {
+        background: #10b981;
+        color: #ffffff;
+        font-size: 13px;
+        font-weight: 800;
+        padding: 3px 10px;
+        border-radius: 10px;
+        letter-spacing: 2px;
+    }
+
+    /* 上下班時間行 */
+    .time-line {
+        display: flex;
+        align-items: baseline;
+        gap: 5px;
+        margin-top: 3px;
+    }
+    .time-line .label {
+        font-size: 11px;
+        font-weight: 800;
+        color: #64748b;
+        letter-spacing: 1px;
+        min-width: 28px;
+        flex-shrink: 0;
+    }
+    .time-line .value {
+        font-size: clamp(24px, 7.2vw, 34px);
+        font-weight: 900;
+        font-family: 'Arial Black', 'Arial', 'Helvetica Neue', sans-serif;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.5px;
+        line-height: 1.05;
+        color: #1a3a5c;
+    }
+    .time-line.start .value {
+        color: #c2410c;
+        text-shadow: 0 2px 6px rgba(194, 65, 12, 0.10);
+    }
+    .time-line.end {
+        margin-top: 2px;
+    }
+    .time-line.end .value {
+        font-size: clamp(18px, 5vw, 26px);
+        color: #2c5d8f;
+        text-shadow: none;
+    }
+
+    .next-day {
+        font-size: 11px;
+        color: #94a3b8;
+        font-weight: 800;
+        margin-left: 3px;
+        letter-spacing: 0.5px;
+    }
+
+    /* 班次代碼小徽章 */
+    .shift-badge {
+        display: inline-block;
+        align-self: flex-start;
+        margin-top: 8px;
+        padding: 3px 11px;
+        background: #eaf2fb;
+        color: #24507e;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        border: 1px solid #cfe0f2;
+        white-space: nowrap;
+    }
+
+    /* 休息 / 放假 狀態 */
+    .rest-info {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 0 2px;
+        flex-wrap: wrap;
+    }
+    .rest-info .icon {
+        font-size: 26px;
+        line-height: 1;
+    }
+    .rest-info .text {
+        font-size: clamp(20px, 5.5vw, 26px);
+        font-weight: 900;
+        color: #64748b;
+        letter-spacing: 2px;
+        line-height: 1;
+    }
+    .rest-info.leave-info .text { color: #b45309; }
+
+    /* ===== 上堂（T）狀態 ===== */
+    .class-info {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        padding: 6px 0 2px;
+    }
+    .class-info .icon {
+        font-size: 30px;
+        line-height: 1;
+    }
+    .class-info .text {
+        font-size: clamp(26px, 7.5vw, 34px);
+        font-weight: 900;
+        color: #6d28d9;
+        letter-spacing: 4px;
+        line-height: 1;
+        text-shadow: 0 2px 6px rgba(109, 40, 217, 0.12);
+    }
+
+    /* 無固定時間班次（SP / SP15 / 數字班次） */
+    .no-time-info {
+        padding: 4px 0 2px;
+    }
+    .no-time-info .code {
+        font-size: clamp(28px, 8vw, 38px);
+        font-weight: 900;
+        color: #c2410c;
+        letter-spacing: 2px;
+        line-height: 1;
+        font-family: 'Arial Black', 'Arial', sans-serif;
+        text-shadow: 0 2px 6px rgba(194, 65, 12, 0.10);
+    }
+    .no-time-info .hint {
+        font-size: 11px;
+        color: #94a3b8;
+        font-weight: 700;
+        letter-spacing: 1px;
+        margin-top: 6px;
+    }
+
+    /* 未知 / 無記錄 */
+    .unknown-info .text {
+        font-size: 15px;
+        color: #94a3b8;
+        font-weight: 700;
+        letter-spacing: 1px;
+        padding: 6px 0;
+    }
+
+    /* ===== 載入 / 錯誤 ===== */
+    .loading, .error {
+        text-align: center;
+        padding: 60px 24px;
+        font-size: 17px;
+        color: #64748b;
+        line-height: 1.7;
+        font-weight: 700;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+    .loading .spinner {
+        width: 46px;
+        height: 46px;
+        margin: 0 auto 18px;
+        border: 5px solid #dbe8f5;
+        border-top-color: #4a6fa5;
+        border-radius: 50%;
+        animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error { color: #dc2626; }
+    .error .err-icon { font-size: 52px; display: block; margin-bottom: 14px; }
+
+    /* ===== 頁尾 ===== */
+    .footer {
+        text-align: center;
+        margin-top: 28px;
+        font-size: 12.5px;
+        color: #a0aec0;
+        letter-spacing: 1px;
+        font-weight: 600;
+    }
+
+    /* ===== 平板 / 桌面 ===== */
+    @media (min-width: 700px) {
+        body { padding: 36px 20px 50px; }
+        .header h1 { font-size: 30px; }
+        .week-grid { gap: 14px; max-width: 1000px; }
+        .col-header { font-size: 26px; padding: 20px 12px; }
+        .day-cell { padding: 16px 18px; min-height: 140px; }
+
+        /* ★ 桌面版日期更大 */
+        .day-date { font-size: 19px; gap: 8px; }
+        .today-badge,
+        .tomorrow-badge,
+        .dayafter-badge { font-size: 14px; padding: 4px 12px; }
+
+        .time-line .value { font-size: clamp(34px, 4vw, 44px); }
+        .time-line.end .value { font-size: clamp(24px, 3vw, 30px); }
+        .time-line .label { font-size: 12.5px; min-width: 32px; }
+        .class-info .text { font-size: 38px; }
+    }
+
+    /* ===== 深色模式 ===== */
+    @media (prefers-color-scheme: dark) {
+        body {
+            background: linear-gradient(170deg, #0f1b2d 0%, #16273f 50%, #1b2d47 100%);
+            color: #e2e8f0;
+        }
+        .header h1 { color: #dbeafe; text-shadow: none; }
+        .header .date { color: #93b4d4; }
+        .col-header {
+            background: linear-gradient(135deg, #2c4a72 0%, #1a3155 100%);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        .col-header.empty { background: #2b3a4d; color: #64748b; }
+        .day-cell {
+            background: #1e2f47;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        .day-cell.today {
+            background: linear-gradient(135deg, #1e2f47 0%, #223d5c 100%);
+            box-shadow: 0 4px 16px rgba(58, 123, 213, 0.3);
+        }
+        .day-cell.empty { background: #16273f; }
+
+        /* ★ 深色模式日期顏色 */
+        .day-date { color: #cbd5e1; }
+
+        .time-line .value { color: #dbeafe; }
+        .time-line.start .value { color: #fdba74; text-shadow: none; }
+        .time-line.end .value { color: #93c5fd; }
+        .time-line .label { color: #9fb3c8; }
+        .shift-badge {
+            background: #2b4461;
+            color: #cfe3fa;
+            border-color: #3d5f85;
+        }
+        .rest-info .text { color: #93a9c2; }
+        .rest-info.leave-info .text { color: #fbbf24; }
+        .class-info .text { color: #c4b5fd; text-shadow: none; }
+        .no-time-info .code { color: #fdba74; text-shadow: none; }
+        .no-time-info .hint { color: #6b8299; }
+        .unknown-info .text { color: #6b8299; }
+        .loading, .error { color: #9fb3c8; }
+        .loading .spinner { border-color: #2f4a68; border-top-color: #7ba3cf; }
+        .footer { color: #5f7793; }
+    }
+</style>
+</head>
+<body>
+
+<div class="header">
+    <h1>未來 7 天更期</h1>
+    <div class="date" id="todayDate">載入中...</div>
+    <span class="date-divider"></span>
+</div>
+
+<div id="content">
+    <div class="loading">
+        <div class="spinner"></div>
+        正在讀取更表資料...
+    </div>
+</div>
+
+<div class="footer" id="updatedAt"></div>
+
+<script>
+/* ============================================================
+   基本設定
+   ============================================================ */
+const firebaseConfig = {
+    apiKey: "AIzaSyBr4kjnldC2BfIBfJDGqgohE43a9SbtB-s",
+    authDomain: "roster-b6ab1.firebaseapp.com",
+    databaseURL: "https://roster-b6ab1-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "roster-b6ab1",
+    storageBucket: "roster-b6ab1.firebasestorage.app",
+    messagingSenderId: "137331161669",
+    appId: "1:137331161669:web:92d69659a5e573cf79812c",
+    measurementId: "G-S82MJM1ZR7"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+/* ============================================================
+   顯示名稱設定
+   ============================================================ */
+const TARGET_NAMES = [
+    { keyword: 'Hei Yi',     display: '沂' },
+    { keyword: 'Ng Hei Man', display: '汶' }
+];
+
+const DAYS_TO_SHOW = 7;
+
+/* ============================================================
+   班次時間表
+   ============================================================ */
+const SHIFT_TIMES = {
+    'E'    : { start: '07:00', end: '15:00', nextDay: false },
+    'L'    : { start: '15:00', end: '23:00', nextDay: false },
+    'N'    : { start: '23:00', end: '07:00', nextDay: true  },
+    'E12'  : { start: '07:00', end: '19:00', nextDay: false },
+    'L12'  : { start: '19:00', end: '07:00', nextDay: true  },
+    '1A'   : { start: '05:15', end: '13:10', nextDay: false },
+    '2A'   : { start: '05:15', end: '13:25', nextDay: false },
+    '3A'   : { start: '05:15', end: '13:40', nextDay: false },
+    '4A'   : { start: '05:15', end: '13:55', nextDay: false },
+    '5A'   : { start: '05:15', end: '13:55', nextDay: false },
+    '6A'   : { start: '05:15', end: '14:10', nextDay: false },
+    '7A'   : { start: '07:00', end: '15:55', nextDay: false },
+    '8A'   : { start: '08:00', end: '17:10', nextDay: false },
+    '9A'   : { start: '13:20', end: '20:00', nextDay: false },
+    '10A'  : { start: '13:25', end: '22:20', nextDay: false },
+    '11A'  : { start: '14:10', end: '23:20', nextDay: false },
+    '12A'  : { start: '15:55', end: '01:05', nextDay: true  },
+    '13A'  : { start: '16:00', end: '01:10', nextDay: true  },
+    '14A'  : { start: '16:05', end: '01:15', nextDay: true  },
+    '15A'  : { start: '17:00', end: '01:10', nextDay: true  },
+    '16A'  : { start: '17:05', end: '01:15', nextDay: true  },
+    '17A'  : { start: '17:15', end: '01:10', nextDay: true  }
+};
+
+const REST_CODES = ['R', 'RD', 'OFF', 'CRD'];
+const LEAVE_CODES = {
+    'AL': { text: '年假',     icon: '🏖️' },
+    'SL': { text: '病假',     icon: '💊' },
+    'SH': { text: '公眾假期', icon: '🎉' },
+    'GH': { text: '公眾假期', icon: '🎉' },
+    'WB': { text: '生日假',   icon: '🎂' },
+    'LS': { text: '長期病假', icon: '💊' }
+};
+
+/* ============================================================
+   工具函式
+   ============================================================ */
+function formatDateKey(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+function getFirstDayOfWeek(date) {
+    const dayOfWeek = date.getDay();
+    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const firstDay = new Date(date);
+    firstDay.setDate(date.getDate() + diff);
+    firstDay.setHours(0, 0, 0, 0);
+    return firstDay;
+}
+
+function getFirstDayOfWeekByYearWeek(year, week) {
+    const firstDayOfYear = new Date(year, 0, 1);
+    const firstDayOfFirstWeek = getFirstDayOfWeek(firstDayOfYear);
+    const targetWeekMonday = new Date(firstDayOfFirstWeek);
+    targetWeekMonday.setDate(firstDayOfFirstWeek.getDate() + (week - 1) * 7);
+    return targetWeekMonday;
+}
+
+function formatChineseDate(date) {
+    const y = date.getFullYear();
+    const m = date.getMonth() + 1;
+    const d = date.getDate();
+    const days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+    return `${y}年${m}月${d}日 ${days[date.getDay()]}`;
+}
+
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[m]));
+}
+
+function normalizeCode(code) {
+    if (code === null || code === undefined) return '';
+    let s = String(code).trim().toUpperCase();
+    s = s.replace(/^0+(\d)/, '$1');
+    return s;
+}
+
+/* ============================================================
+   班次模式
+   ============================================================ */
+const staffRotation = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+const shiftPatterns = {
+    'A': ['SP15', 'E', 'E', 'L', 'L', 'R', 'N'],
+    'B': ['N',    'N', 'N', 'R', 'R', 'L', 'L'],
+    'C': ['L',    'L', 'R', 'E', 'E', 'E', 'E'],
+    'D': ['E',    'R', 'L', 'N', 'N', 'N', 'R'],
+    'E': ['R',    'SP', 'SP', 'SP', 'SP', 'SP', 'SP'],
+    'F': ['SP',   'E', 'E', 'L', 'L', 'R', 'N'],
+    'G': ['N',    'N', 'N', 'R', 'R', 'L', 'L'],
+    'H': ['L',    'L', 'R', 'E', 'E', 'E', 'E'],
+    'I': ['E',    'R', 'L', 'N', 'N', 'N', 'R'],
+    'J': ['SP',   'SP', 'SP', 'SP', 'SP', 'SP', 'SP']
+};
+
+function getBaseShiftForStaff(staffId, date) {
+    const numId = parseInt(staffId, 10);
+    if (isNaN(numId) || numId < 1 || numId > 5) return null;
+
+    const baseDate = getFirstDayOfWeekByYearWeek(2025, 53);
+    const currentMonday = getFirstDayOfWeek(date);
+    const weekDiff = Math.round((currentMonday - baseDate) / (7 * 24 * 60 * 60 * 1000));
+
+    const basePatterns = ['A', 'B', 'C', 'D', 'E'];
+    const basePattern = basePatterns[numId - 1] || 'A';
+    const baseIndex = staffRotation.indexOf(basePattern);
+
+    let newIndex = (baseIndex + weekDiff) % staffRotation.length;
+    if (newIndex < 0) newIndex += staffRotation.length;
+
+    const patternCode = staffRotation[newIndex];
+    let dayIndex = date.getDay() - 1;
+    if (dayIndex < 0) dayIndex = 6;
+
+    return shiftPatterns[patternCode][dayIndex];
+}
+
+function getFinalShiftForStaff(staffId, date, shiftChanges) {
+    const dateKey = formatDateKey(date);
+    const shiftKey = `staff${staffId}_${dateKey}`;
+
+    if (shiftChanges[shiftKey] && shiftChanges[shiftKey].newShift) {
+        return {
+            code: shiftChanges[shiftKey].newShift,
+            isChanged: true,
+            reason: shiftChanges[shiftKey].reason || ''
+        };
+    }
+
+    const base = getBaseShiftForStaff(staffId, date);
+    return { code: base, isChanged: false, reason: '' };
+}
+
+/* ============================================================
+   分析班次狀態
+   ============================================================ */
+function analyzeShift(shiftInfo) {
+    const { code, isChanged, reason } = shiftInfo;
+    const upperReason = (reason || '').trim().toUpperCase();
+
+    if (upperReason === 'SL' || upperReason === 'SICK LEAVE' || upperReason === 'SICK') {
+        return { type: 'leave', label: '病假', icon: '💊', code: code || 'SL' };
+    }
+
+    if (!code) {
+        return { type: 'unknown', label: '無班次記錄', icon: '❓', code: '' };
+    }
+
+    const upper = normalizeCode(code);
+
+    if (upper === 'T') {
+        return { type: 'class', label: '上堂', icon: '📚', code: 'T' };
+    }
+
+    if (upper.startsWith('自訂')) {
+        const m = code.match(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/);
+        if (m) {
+            return {
+                type: 'work',
+                code: '自訂',
+                start: m[1].padStart(5, '0'),
+                end: m[2].padStart(5, '0'),
+                nextDay: false
+            };
+        }
+        return { type: 'unknown', label: '自訂班次', icon: '📌', code: code };
+    }
+
+    if (REST_CODES.includes(upper)) {
+        return { type: 'rest', label: '休息', icon: '🌙', code: upper };
+    }
+
+    if (LEAVE_CODES[upper]) {
+        return {
+            type: 'leave',
+            label: LEAVE_CODES[upper].text,
+            icon: LEAVE_CODES[upper].icon,
+            code: upper
+        };
+    }
+
+    if (SHIFT_TIMES[upper]) {
+        return {
+            type: 'work',
+            code: upper,
+            start: SHIFT_TIMES[upper].start,
+            end: SHIFT_TIMES[upper].end,
+            nextDay: SHIFT_TIMES[upper].nextDay
+        };
+    }
+
+    return { type: 'work-no-time', code: upper };
+}
+
+/* ============================================================
+   從 Firestore 載入資料
+   ============================================================ */
+async function loadRosterData() {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+
+    const monthKeys = new Set();
+    for (let i = 0; i < DAYS_TO_SHOW; i++) {
+        const d = new Date(today);
+        d.setDate(d.getDate() + i);
+        monthKeys.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+
+    const staffNamesDoc = await db.collection('rosterData')
+        .doc(`staffNames_${currentYear}`)
+        .get().catch(() => null);
+    const staffNames = (staffNamesDoc && staffNamesDoc.exists)
+        ? staffNamesDoc.data()
+        : {};
+
+    const shiftChanges = {};
+    const monthDocs = await Promise.all(
+        Array.from(monthKeys).map(ym => {
+            const [y, m] = ym.split('-');
+            return db.collection('rosterData')
+                .doc(`shiftChanges_${y}_${m}`)
+                .get()
+                .catch(() => null);
+        })
+    );
+    monthDocs.forEach(doc => {
+        if (doc && doc.exists) {
+            Object.assign(shiftChanges, doc.data());
+        }
+    });
+
+    return { staffNames, shiftChanges };
+}
+
+function matchTargetStaff(staffNames) {
+    const results = [];
+    const usedKeywords = new Set();
+
+    for (const [id, rawName] of Object.entries(staffNames)) {
+        if (!rawName) continue;
+        const name = String(rawName).trim();
+        if (!name || name.toLowerCase() === 'vacant') continue;
+
+        const lower = name.toLowerCase();
+        for (const target of TARGET_NAMES) {
+            if (usedKeywords.has(target.keyword)) continue;
+            if (lower.includes(target.keyword.toLowerCase())) {
+                results.push({
+                    id,
+                    name: name,
+                    display: target.display,
+                    keyword: target.keyword
+                });
+                usedKeywords.add(target.keyword);
+                break;
+            }
+        }
+    }
+
+    results.sort((a, b) =>
+        TARGET_NAMES.findIndex(t => t.keyword === a.keyword) -
+        TARGET_NAMES.findIndex(t => t.keyword === b.keyword)
+    );
+    return results;
+}
+
+/* ============================================================
+   渲染：單日格子
+   ============================================================ */
+function renderDayCell(staffId, date, shiftChanges, dayOffset) {
+    const shiftInfo = getFinalShiftForStaff(staffId, date, shiftChanges);
+    const analysis = analyzeShift(shiftInfo);
+
+    let cellClass = 'day-cell';
+    if (dayOffset === 0) cellClass += ' today';
+    if (analysis.type === 'rest') cellClass += ' is-rest';
+    else if (analysis.type === 'leave') cellClass += ' is-leave';
+    else if (analysis.type === 'class') cellClass += ' is-class';
+
+    const m = date.getMonth() + 1;
+    const d = date.getDate();
+    const days = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+    const dayName = days[date.getDay()];
+
+    let dateLabel = '';
+    if (dayOffset === 0) dateLabel = '<span class="today-badge">今天</span>';
+    else if (dayOffset === 1) dateLabel = '<span class="tomorrow-badge">明天</span>';
+    else if (dayOffset === 2) dateLabel = '<span class="dayafter-badge">後天</span>';
+
+    const dateHtml = `<div class="day-date">${dateLabel}${m}月${d}日 ${dayName}</div>`;
+
+    let bodyHtml = '';
+    if (analysis.type === 'work') {
+        const nextDayMark = analysis.nextDay ? '<span class="next-day">(+1)</span>' : '';
+        bodyHtml = `
+            <div class="time-line start">
+                <span class="label">上班</span>
+                <span class="value">${analysis.start}</span>
+            </div>
+            <div class="time-line end">
+                <span class="label">下班</span>
+                <span class="value">${analysis.end}${nextDayMark}</span>
+            </div>
+            <span class="shift-badge">班次 ${escapeHtml(analysis.code)}</span>
+        `;
+    } else if (analysis.type === 'rest') {
+        bodyHtml = `
+            <div class="rest-info">
+                <span class="icon">🌙</span>
+                <span class="text">休息</span>
+            </div>
+        `;
+    } else if (analysis.type === 'leave') {
+        bodyHtml = `
+            <div class="rest-info leave-info">
+                <span class="icon">${analysis.icon}</span>
+                <span class="text">${escapeHtml(analysis.label)}</span>
+            </div>
+        `;
+    } else if (analysis.type === 'class') {
+        bodyHtml = `
+            <div class="class-info">
+                <span class="icon">📚</span>
+                <span class="text">上堂</span>
+            </div>
+        `;
+    } else if (analysis.type === 'work-no-time') {
+        bodyHtml = `
+            <div class="no-time-info">
+                <div class="code">${escapeHtml(analysis.code)}</div>
+                <div class="hint">無固定時間</div>
+            </div>
+        `;
+    } else {
+        bodyHtml = `<div class="unknown-info"><div class="text">無班次記錄</div></div>`;
+    }
+
+    return `<div class="${cellClass}">${dateHtml}${bodyHtml}</div>`;
+}
+
+/* ============================================================
+   主流程
+   ============================================================ */
+async function refresh() {
+    const content = document.getElementById('content');
+    const updatedEl = document.getElementById('updatedAt');
+    const today = new Date();
+
+    document.getElementById('todayDate').textContent = formatChineseDate(today);
+
+    try {
+        const { staffNames, shiftChanges } = await loadRosterData();
+        const matched = matchTargetStaff(staffNames);
+
+        if (matched.length === 0) {
+            content.innerHTML = `
+                <div class="error">
+                    <span class="err-icon">🔍</span>
+                    找不到指定員工<br>
+                    <span style="font-size:14px; color:#94a3b8;">（請確認 staffNames 內是否包含 Hei Yi / Ng Hei Man）</span>
+                </div>
+            `;
+            return;
+        }
+
+        const totalCols = 2;
+        let gridHtml = '';
+
+        for (let i = 0; i < totalCols; i++) {
+            if (i < matched.length) {
+                gridHtml += `<div class="col-header">
+                    <span class="icon">👤</span>
+                    <span>${escapeHtml(matched[i].display)}</span>
+                </div>`;
+            } else {
+                gridHtml += `<div class="col-header empty">—</div>`;
+            }
+        }
+
+        for (let d = 0; d < DAYS_TO_SHOW; d++) {
+            const date = new Date(today);
+            date.setDate(date.getDate() + d);
+
+            for (let i = 0; i < totalCols; i++) {
+                if (i < matched.length) {
+                    gridHtml += renderDayCell(matched[i].id, date, shiftChanges, d);
+                } else {
+                    gridHtml += '<div class="day-cell empty"></div>';
+                }
+            }
+        }
+
+        content.innerHTML = `<div class="week-grid">${gridHtml}</div>`;
+
+        const timeStr = today.toLocaleTimeString('zh-HK', {
+            hour: '2-digit', minute: '2-digit', hour12: false
+        });
+        updatedEl.textContent = `最後更新：${timeStr}`;
+
+    } catch (err) {
+        console.error('讀取更表失敗：', err);
+        content.innerHTML = `
+            <div class="error">
+                <span class="err-icon">⚠️</span>
+                讀取更表資料失敗<br>
+                <span style="font-size:14px; color:#94a3b8;">請檢查網絡連線</span>
+            </div>
+        `;
+    }
+}
+
+/* ============================================================
+   啟動
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+    refresh();
+    setInterval(refresh, 5 * 60 * 1000);
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) refresh();
+    });
+});
+</script>
+
+</body>
+</html>
