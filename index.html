@@ -127,11 +127,11 @@
         border-left-color: #e2e8f0;
     }
 
-    /* ===== ★ 日期標題（加大） ===== */
+    /* ===== 日期標題 ===== */
     .day-date {
-        font-size: 17px;          /* ★ 從 12.5px 加大至 17px */
-        font-weight: 800;          /* ★ 加粗 */
-        color: #334155;            /* ★ 加深顏色 */
+        font-size: 17px;
+        font-weight: 800;
+        color: #334155;
         letter-spacing: 0.5px;
         margin-bottom: 10px;
         display: flex;
@@ -141,7 +141,6 @@
         line-height: 1.35;
     }
 
-    /* ★ 今日 / 明日 / 後日 徽章加大 */
     .today-badge {
         background: #3a7bd5;
         color: #ffffff;
@@ -170,7 +169,7 @@
         letter-spacing: 2px;
     }
 
-    /* 上下班時間行 */
+    /* ===== 上下班時間行 ===== */
     .time-line {
         display: flex;
         align-items: baseline;
@@ -193,6 +192,9 @@
         letter-spacing: 0.5px;
         line-height: 1.05;
         color: #1a3a5c;
+        display: inline-flex;
+        align-items: baseline;
+        gap: 2px;
     }
     .time-line.start .value {
         color: #c2410c;
@@ -206,6 +208,19 @@
         color: #2c5d8f;
         text-shadow: none;
     }
+
+    /* ===== ★ 上午 / 下午 標籤（小號前綴） ===== */
+    .time-line .period {
+        font-size: 0.48em;
+        font-weight: 800;
+        color: #64748b;
+        letter-spacing: 1px;
+        margin-right: 1px;
+        vertical-align: 0.15em;
+        font-family: 'Microsoft JhengHei', 'PingFang TC', sans-serif;
+    }
+    .time-line.start .period { color: #92400e; }
+    .time-line.end .period { color: #1e40af; }
 
     .next-day {
         font-size: 11px;
@@ -252,7 +267,7 @@
     }
     .rest-info.leave-info .text { color: #b45309; }
 
-    /* ===== 上堂（T）狀態 ===== */
+    /* 上堂（T）狀態 */
     .class-info {
         display: flex;
         flex-direction: column;
@@ -273,7 +288,7 @@
         text-shadow: 0 2px 6px rgba(109, 40, 217, 0.12);
     }
 
-    /* 無固定時間班次（SP / SP15 / 數字班次） */
+    /* 無固定時間班次 */
     .no-time-info {
         padding: 4px 0 2px;
     }
@@ -345,7 +360,6 @@
         .col-header { font-size: 26px; padding: 20px 12px; }
         .day-cell { padding: 16px 18px; min-height: 140px; }
 
-        /* ★ 桌面版日期更大 */
         .day-date { font-size: 19px; gap: 8px; }
         .today-badge,
         .tomorrow-badge,
@@ -380,13 +394,18 @@
         }
         .day-cell.empty { background: #16273f; }
 
-        /* ★ 深色模式日期顏色 */
         .day-date { color: #cbd5e1; }
 
         .time-line .value { color: #dbeafe; }
         .time-line.start .value { color: #fdba74; text-shadow: none; }
         .time-line.end .value { color: #93c5fd; }
         .time-line .label { color: #9fb3c8; }
+
+        /* 深色模式上午/下午 */
+        .time-line .period { color: #93b4d4; }
+        .time-line.start .period { color: #fbbf24; }
+        .time-line.end .period { color: #93c5fd; }
+
         .shift-badge {
             background: #2b4461;
             color: #cfe3fa;
@@ -439,9 +458,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-/* ============================================================
-   顯示名稱設定
-   ============================================================ */
 const TARGET_NAMES = [
     { keyword: 'Hei Yi',     display: '沂' },
     { keyword: 'Ng Hei Man', display: '汶' }
@@ -450,7 +466,7 @@ const TARGET_NAMES = [
 const DAYS_TO_SHOW = 7;
 
 /* ============================================================
-   班次時間表
+   班次時間表（24 小時制，顯示時會轉 12 小時制）
    ============================================================ */
 const SHIFT_TIMES = {
     'E'    : { start: '07:00', end: '15:00', nextDay: false },
@@ -534,6 +550,34 @@ function normalizeCode(code) {
     let s = String(code).trim().toUpperCase();
     s = s.replace(/^0+(\d)/, '$1');
     return s;
+}
+
+/* ============================================================
+   ★ 12 小時制轉換
+   - 0:00 ~ 11:59 → 上午
+   - 12:00 ~ 23:59 → 下午
+   - 回傳 { period: '上午'|'下午', display: '7:00' }
+   ============================================================ */
+function format12Hour(timeStr) {
+    if (!timeStr) return { period: '', display: '' };
+
+    const parts = String(timeStr).split(':');
+    if (parts.length < 2) return { period: '', display: timeStr };
+
+    const h = parseInt(parts[0], 10);
+    const m = parts[1];
+    if (isNaN(h)) return { period: '', display: timeStr };
+
+    let period, hour12;
+    if (h >= 0 && h < 12) {
+        period = '上午';
+        hour12 = (h === 0) ? 12 : h;
+    } else {
+        period = '下午';
+        hour12 = (h === 12) ? 12 : h - 12;
+    }
+
+    return { period, display: `${hour12}:${m}` };
 }
 
 /* ============================================================
@@ -751,15 +795,19 @@ function renderDayCell(staffId, date, shiftChanges, dayOffset) {
 
     let bodyHtml = '';
     if (analysis.type === 'work') {
+        /* ★ 轉 12 小時制 */
+        const startT = format12Hour(analysis.start);
+        const endT = format12Hour(analysis.end);
         const nextDayMark = analysis.nextDay ? '<span class="next-day">(+1)</span>' : '';
+
         bodyHtml = `
             <div class="time-line start">
                 <span class="label">上班</span>
-                <span class="value">${analysis.start}</span>
+                <span class="value"><span class="period">${startT.period}</span>${startT.display}</span>
             </div>
             <div class="time-line end">
                 <span class="label">下班</span>
-                <span class="value">${analysis.end}${nextDayMark}</span>
+                <span class="value"><span class="period">${endT.period}</span>${endT.display}${nextDayMark}</span>
             </div>
             <span class="shift-badge">班次 ${escapeHtml(analysis.code)}</span>
         `;
